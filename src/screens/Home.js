@@ -1,54 +1,113 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
+import { useSelector, useDispatch } from 'react-redux';
+import { increment } from '../redux/counterSlice'; // Import the increment action
 import axios from 'axios';
 
-const Home = ({ route }) => {
-  const { username } = route.params;
-  const [busService, setBusService] = useState(null);
+const Home = () => {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
 
+  const clickCount = useSelector((state) => state.counter.count); // Access the current click count from Redux
+  const username = useSelector((state) => state.user.username); // Access the username from Redux
+  const dispatch = useDispatch(); // Use Redux dispatch
+
+  // Fetch all cars or search cars
+  const searchVehicles = async (defaultQuery = 'vehicle') => {
+    setLoading(true);
+    setResults([]);
+    setError('');
+    try {
+      const response = await axios.get(
+        `https://cars-database-with-image.p.rapidapi.com/api/search`,
+        {
+          headers: {
+            'x-rapidapi-host': 'cars-database-with-image.p.rapidapi.com',
+            'x-rapidapi-key': 'dbafc40d8dmsh73dcd0e3f95ca77p1832cajsn4abb50893e6c',
+          },
+          params: { q: defaultQuery, page: 1 },
+        }
+      );
+      setResults(response.data.results);
+    } catch (error) {
+      setError('Failed to fetch vehicle data. Please try again later.');
+      console.error('Error fetching vehicles:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch all cars on page load
   useEffect(() => {
-    const fetchData = async () => {
-      const appId = 'c5776a05'; // Your app_id
-      const appKey = '62f088f005e6f370155f97eb371f0aeb'; // Your app_key
-      const url = `https://transportapi.com/v3/uk/bus/services/FPOT:25.json?app_id=${appId}&app_key=${appKey}`;
-
-      try {
-        const response = await axios.get(url);
-        setBusService(response.data);
-      } catch (error) {
-        console.error('Error fetching data', error);
-      }
-    };
-
-    fetchData();
+    searchVehicles();
   }, []);
 
-  if (!busService) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+  // Update search results as the user types
+  const handleSearch = (text) => {
+    setQuery(text);
+    if (text.trim()) {
+      searchVehicles(text);
+    } else {
+      setResults([]); // Clear results if the query is empty
+    }
+  };
+
+  const handleCardClick = () => {
+    dispatch(increment()); // Dispatch the increment action when a card is clicked
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity style={styles.card} onPress={handleCardClick}>
+      <Image source={{ uri: item.image }} style={styles.image} />
+      <View style={styles.cardContent}>
+        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.content}>{item.content}</Text>
+        <Text style={styles.additional}>{item.additional}</Text>
       </View>
-    );
-  }
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Welcome, {username}</Text>
-      <Text style={styles.title}>Bus Service Information</Text>
-      <Text style={styles.info}>Operator: {busService.operator.name}</Text>
-      <Text style={styles.info}>Line: {busService.line_name}</Text>
-      <Text style={styles.info}>Directions:</Text>
-      <FlatList
-        data={busService.directions}
-        keyExtractor={(item) => item.name}
-        renderItem={({ item }) => (
-          <View style={styles.direction}>
-            <Text style={styles.directionName}>{item.name}</Text>
-            <Text style={styles.destination}>{item.destination.description}</Text>
-          </View>
-        )}
+      <View style={styles.header}>
+        <Text style={styles.username}>Welcome, {username}</Text>
+      </View>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Enter vehicle name"
+        placeholderTextColor={'#000'}
+        value={query}
+        onChangeText={handleSearch}
       />
-      <Text style={styles.info}>Coordinates: {busService.centroid.coordinates.join(', ')}</Text>
+
+      {loading && <Text style={styles.loading}>Loading...</Text>}
+      {error && <Text style={styles.error}>{error}</Text>}
+      {!loading && results.length === 0 && !error && query.trim() !== '' && (
+        <Text style={styles.noResults}>No results found.</Text>
+      )}
+
+      <FlatList
+        data={results}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+      />
+
+      <TouchableOpacity style={styles.floatingButton}>
+        <Text style={styles.buttonText}>{clickCount}</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -57,31 +116,89 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
   header: {
-    fontSize: 24,
+    alignItems: 'flex-end',
+    marginBottom: 10,
+  },
+  username: {
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 20,
+    color: '#333',
+  },
+  input: {
+    height: 50,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  loading: {
+    textAlign: 'center',
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  error: {
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  noResults: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#555',
+  },
+  list: {
+    paddingBottom: 20,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 15,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    elevation: 3,
+  },
+  image: {
+    width: 100,
+    height: 100,
+  },
+  cardContent: {
+    flex: 1,
+    padding: 10,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 5,
   },
-  info: {
-    fontSize: 16,
-    marginBottom: 10,
+  content: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 5,
   },
-  direction: {
-    marginBottom: 10,
+  additional: {
+    fontSize: 12,
+    color: '#777',
   },
-  directionName: {
-    fontSize: 16,
+  floatingButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#6200ee',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
-  },
-  destination: {
-    fontSize: 16,
   },
 });
 
