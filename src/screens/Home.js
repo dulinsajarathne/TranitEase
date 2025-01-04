@@ -87,7 +87,7 @@ const Home = () => {
       <TextInput
         style={styles.input}
         placeholder="Enter vehicle name"
-        placeholderTextColor={'#000'}
+        placeholderTextColor={'#c7c5c3'}
         value={query}
         onChangeText={handleSearch}
       />
