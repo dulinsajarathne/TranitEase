@@ -45,7 +45,8 @@ export const formStyles=StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    resizeMode: 'cover', // Ensures the image fits the screen
+    width: '100%',       // Full screen width
+    height: '100%',      // Full screen height
   },
 });

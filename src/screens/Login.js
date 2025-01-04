@@ -3,12 +3,15 @@ import { View, TextInput, Text, TouchableOpacity, Alert, ImageBackground } from 
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { formStyles } from '../styles/formStyles';
+import { setUser } from '../redux/userSlice';
+import { useDispatch } from 'react-redux';
 
 const Login = () => {
   const [username, setUsernameInput] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigation = useNavigation();
+  const dispatch = useDispatch();
 
   const validateInputs = () => {
     const usernameRegex = /^[a-zA-Z0-9_]+$/;
@@ -37,6 +40,7 @@ const Login = () => {
       const user = JSON.parse(await AsyncStorage.getItem('user'));
       if (user && user.username === username && user.password === password) {
         setError('');
+        dispatch(setUser(username));
         navigation.navigate('Home');
       } else {
         setError('Invalid credentials');
