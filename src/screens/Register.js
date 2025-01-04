@@ -16,10 +16,14 @@ const Register = ({ navigation }) => {
   };
 
   const validatePassword = (password) => {
-    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[a-zA-Z]).{8,}$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[a-zA-Z]).{8,}$/;      
     return passwordRegex.test(password);
   };
 
+  const validateUsername = (username) => {
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    return usernameRegex.test(username);
+  }
   const handleRegister = async () => {
     const newErrors = {};
 
@@ -33,6 +37,8 @@ const Register = ({ navigation }) => {
       newErrors.username = 'Username is required.';
     } else if (username.length < 8) {
       newErrors.username = 'Username must be at least 8 characters.';
+    } else if (!validateUsername(username)) {
+      newErrors.username = 'Username must contain only letters, numbers, and underscores.';
     }
 
     if (!password) {
